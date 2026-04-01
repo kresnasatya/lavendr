@@ -30,6 +30,8 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'card_number' => null,
+            'is_active' => true,
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
@@ -56,5 +58,24 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
         ]);
+    }
+
+    /**
+     * Set a card number for the user (required for vending machine purchases).
+     */
+    public function withCard(?string $cardNumber = null): static
+    {
+        return $this->state([
+            'card_number' => $cardNumber ?? 'CARD-'.strtoupper(Str::random(6)),
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Mark the user as inactive.
+     */
+    public function inactive(): static
+    {
+        return $this->state(['is_active' => false]);
     }
 }

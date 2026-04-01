@@ -62,4 +62,18 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class);
     }
+
+    /**
+     * Get the role limit for this user's primary role.
+     */
+    public function roleLimit(): ?RoleLimit
+    {
+        $role = $this->roles->first();
+
+        if (! $role) {
+            return null;
+        }
+
+        return RoleLimit::where('role_id', $role->id)->first();
+    }
 }

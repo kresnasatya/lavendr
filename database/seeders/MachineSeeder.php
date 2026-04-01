@@ -12,18 +12,18 @@ class MachineSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create 3 sample machines
+        // Slot ranges per BRD: 1–10 = juice, 11–30 = meal, 31–40 = snack
         Machine::create([
             'code' => 'VM-001',
             'location' => 'Floor 1 - Break Room',
             'is_active' => true,
         ])->slots()->createMany([
-            ['slot_number' => 1, 'category' => 'Food', 'price' => 10],
-            ['slot_number' => 2, 'category' => 'Food', 'price' => 12],
-            ['slot_number' => 3, 'category' => 'Beverage', 'price' => 8],
-            ['slot_number' => 4, 'category' => 'Beverage', 'price' => 10],
-            ['slot_number' => 5, 'category' => 'Snack', 'price' => 5],
-            ['slot_number' => 6, 'category' => 'Dessert', 'price' => 15],
+            ['slot_number' => 1, 'category' => 'juice', 'price' => 10],
+            ['slot_number' => 2, 'category' => 'juice', 'price' => 12],
+            ['slot_number' => 11, 'category' => 'meal', 'price' => 25],
+            ['slot_number' => 12, 'category' => 'meal', 'price' => 30],
+            ['slot_number' => 31, 'category' => 'snack', 'price' => 8],
+            ['slot_number' => 32, 'category' => 'snack', 'price' => 10],
         ]);
 
         Machine::create([
@@ -31,10 +31,10 @@ class MachineSeeder extends Seeder
             'location' => 'Floor 2 - Pantry',
             'is_active' => true,
         ])->slots()->createMany([
-            ['slot_number' => 1, 'category' => 'Beverage', 'price' => 8],
-            ['slot_number' => 2, 'category' => 'Beverage', 'price' => 10],
-            ['slot_number' => 3, 'category' => 'Snack', 'price' => 7],
-            ['slot_number' => 4, 'category' => 'Snack', 'price' => 8],
+            ['slot_number' => 1, 'category' => 'juice', 'price' => 8],
+            ['slot_number' => 2, 'category' => 'juice', 'price' => 10],
+            ['slot_number' => 31, 'category' => 'snack', 'price' => 7],
+            ['slot_number' => 32, 'category' => 'snack', 'price' => 8],
         ]);
 
         Machine::create([
@@ -42,9 +42,9 @@ class MachineSeeder extends Seeder
             'location' => 'Ground Floor - Lobby',
             'is_active' => true,
         ])->slots()->createMany([
-            ['slot_number' => 1, 'category' => 'Food', 'price' => 15],
-            ['slot_number' => 2, 'category' => 'Food', 'price' => 18],
-            ['slot_number' => 3, 'category' => 'Dessert', 'price' => 20],
+            ['slot_number' => 11, 'category' => 'meal', 'price' => 35],
+            ['slot_number' => 12, 'category' => 'meal', 'price' => 40],
+            ['slot_number' => 31, 'category' => 'snack', 'price' => 12],
         ]);
     }
 }

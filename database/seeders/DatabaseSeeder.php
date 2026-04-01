@@ -13,8 +13,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create roles and permissions
+        // Create roles, permissions, and role limits
         $this->call(RolePermissionSeeder::class);
+
+        // Seed default recharge settings per role
+        $this->call(RechargeSettingSeeder::class);
 
         // Create machines and slots
         $this->call(MachineSeeder::class);

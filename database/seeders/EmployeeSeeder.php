@@ -14,6 +14,14 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create Superadmin
+        User::create([
+            'name' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+        ])->assignRole('superadmin');
+
         // Create Manager
         $manager = User::create([
             'name' => 'John Manager',

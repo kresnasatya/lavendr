@@ -1,30 +1,34 @@
 <?php
 
-use Livewire\Component;
-use Livewire\Attributes\{Validate, Computed};
 use App\Models\Machine;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
 
 new class extends Component
 {
-    public $showModal = false;
-    public $editingMachine = null;
-    public $code = '';
-    public $location = '';
-    public $isActive = true;
-    public $searchTerm = '';
+    public bool $showModal = false;
+    public ?int $editingMachine = null;
+    public string $code = '';
+    public string $location = '';
+    public bool $isActive = true;
+    public string $searchTerm = '';
 
     #[Computed]
-    public function machines()
+    public function machines(): \Illuminate\Database\Eloquent\Collection
     {
-        return Machine::where('code', 'like', '%' . $this->searchTerm . '%')
-            ->orWhere('location', 'like', '%' . $this->searchTerm . '%')
+        return Machine::with('slots')
+            ->where(function ($q) {
+                $q->where('code', 'like', '%'.$this->searchTerm.'%')
+                    ->orWhere('location', 'like', '%'.$this->searchTerm.'%');
+            })
+            ->orderBy('code')
             ->get();
     }
 
-    public function openModal($machineId = null)
+    public function openModal(?int $machineId = null): void
     {
         if ($machineId) {
-            $machine = Machine::find($machineId);
+            $machine = Machine::findOrFail($machineId);
             $this->editingMachine = $machineId;
             $this->code = $machine->code;
             $this->location = $machine->location;
@@ -32,81 +36,79 @@ new class extends Component
         } else {
             $this->resetForm();
         }
+
         $this->showModal = true;
     }
 
-    public function closeModal()
+    public function closeModal(): void
     {
         $this->showModal = false;
         $this->resetForm();
     }
 
-    public function resetForm()
+    public function save(): void
+    {
+        $this->validate([
+            'code'     => 'required|string|unique:machines,code,'.($this->editingMachine ?? 'NULL'),
+            'location' => 'required|string|min:3|max:255',
+        ]);
+
+        if ($this->editingMachine) {
+            Machine::findOrFail($this->editingMachine)->update([
+                'code'       => $this->code,
+                'location'   => $this->location,
+                'is_active'  => $this->isActive,
+            ]);
+        } else {
+            Machine::create([
+                'code'       => $this->code,
+                'location'   => $this->location,
+                'is_active'  => $this->isActive,
+            ]);
+        }
+
+        unset($this->machines);
+        $this->closeModal();
+    }
+
+    public function deleteMachine(int $machineId): void
+    {
+        Machine::findOrFail($machineId)->delete();
+        unset($this->machines);
+    }
+
+    public function toggleActive(int $machineId): void
+    {
+        $machine = Machine::findOrFail($machineId);
+        $machine->update(['is_active' => ! $machine->is_active]);
+        unset($this->machines);
+    }
+
+    private function resetForm(): void
     {
         $this->editingMachine = null;
         $this->code = '';
         $this->location = '';
         $this->isActive = true;
     }
-
-    public function save()
-    {
-        $this->validate([
-            'code' => 'required|string|unique:machines,code,' . ($this->editingMachine ?? 'NULL'),
-            'location' => 'required|string|min:3|max:255',
-        ]);
-
-        if ($this->editingMachine) {
-            $machine = Machine::find($this->editingMachine);
-            $machine->update([
-                'code' => $this->code,
-                'location' => $this->location,
-                'is_active' => $this->isActive,
-            ]);
-        } else {
-            Machine::create([
-                'code' => $this->code,
-                'location' => $this->location,
-                'is_active' => $this->isActive,
-            ]);
-        }
-
-        $this->closeModal();
-    }
-
-    public function deleteMachine($machineId)
-    {
-        Machine::find($machineId)->delete();
-    }
-
-    public function toggleActive($machineId)
-    {
-        $machine = Machine::find($machineId);
-        $machine->update(['is_active' => !$machine->is_active]);
-    }
-};
-?>
+}; ?>
 
 <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between border-b border-zinc-200 pb-6 dark:border-zinc-700">
         <div>
             <flux:heading size="xl">Manage Machines</flux:heading>
-            <p class="text-zinc-600 dark:text-zinc-400">Add and configure vending machines</p>
+            <flux:text>Add and configure vending machines</flux:text>
         </div>
-        <flux:button wire:click="openModal" variant="primary">
-            <flux:icon icon="plus" />
+        <flux:button wire:click="openModal" variant="primary" icon="plus">
             Add Machine
         </flux:button>
     </div>
 
-    <!-- Search -->
     <flux:field>
-        <flux:label>Search Machines</flux:label>
-        <flux:input wire:model.live="searchTerm" type="text" placeholder="Search by code or location..." />
+        <flux:label>Search</flux:label>
+        <flux:input wire:model.live="searchTerm" type="text" placeholder="Code or location…" />
     </flux:field>
 
-    <!-- Machines Table -->
     <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
         <table class="w-full">
             <thead class="bg-zinc-50 dark:bg-zinc-800">
@@ -119,30 +121,26 @@ new class extends Component
                 </tr>
             </thead>
             <tbody>
-                @forelse($this->machines as $machine)
-                    <tr class="border-b border-zinc-200 dark:border-zinc-700">
-                        <td class="px-6 py-4 text-sm font-mono">{{ $machine->code }}</td>
+                @forelse ($this->machines as $machine)
+                    <tr wire:key="machine-{{ $machine->id }}" class="border-b border-zinc-200 dark:border-zinc-700">
+                        <td class="px-6 py-4 font-mono text-sm">{{ $machine->code }}</td>
                         <td class="px-6 py-4 text-sm">{{ $machine->location }}</td>
                         <td class="px-6 py-4 text-center text-sm">
-                            <flux:badge>{{ $machine->slots()->count() }} slots</flux:badge>
+                            <flux:badge>{{ $machine->slots->count() }} slots</flux:badge>
                         </td>
                         <td class="px-6 py-4 text-center text-sm">
-                            @if($machine->is_active)
+                            @if ($machine->is_active)
                                 <flux:badge variant="success">Active</flux:badge>
                             @else
                                 <flux:badge variant="danger">Inactive</flux:badge>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-right text-sm space-x-2">
-                            <flux:button wire:click="openModal({{ $machine->id }})" size="sm" variant="subtle">
-                                Edit
-                            </flux:button>
+                        <td class="space-x-1 px-6 py-4 text-right text-sm">
+                            <flux:button wire:click="openModal({{ $machine->id }})" size="sm" variant="subtle">Edit</flux:button>
                             <flux:button wire:click="toggleActive({{ $machine->id }})" size="sm" variant="ghost">
                                 {{ $machine->is_active ? 'Disable' : 'Enable' }}
                             </flux:button>
-                            <flux:button wire:click="deleteMachine({{ $machine->id }})" size="sm" variant="danger">
-                                Delete
-                            </flux:button>
+                            <flux:button wire:click="deleteMachine({{ $machine->id }})" size="sm" variant="danger">Delete</flux:button>
                         </td>
                     </tr>
                 @empty
@@ -154,14 +152,13 @@ new class extends Component
         </table>
     </div>
 
-    <!-- Modal -->
-    <flux:modal wire:model="showModal">
+    <flux:modal wire:model="showModal" class="max-w-md">
         <flux:heading>{{ $editingMachine ? 'Edit Machine' : 'Add Machine' }}</flux:heading>
 
         <div class="mt-6 space-y-4">
             <flux:field>
-                <flux:label>Machine Code</flux:label>
-                <flux:input type="text" wire:model="code" placeholder="e.g., M001" />
+                <flux:label>Code</flux:label>
+                <flux:input type="text" wire:model="code" placeholder="e.g., VM-001" />
                 <flux:error name="code" />
             </flux:field>
 
@@ -171,15 +168,15 @@ new class extends Component
                 <flux:error name="location" />
             </flux:field>
 
-            <label class="flex items-center space-x-2">
-                <flux:checkbox wire:model="isActive" />
-                <span class="text-sm">Active</span>
-            </label>
+            <div class="flex items-center gap-2">
+                <flux:checkbox wire:model="isActive" id="isActive" />
+                <flux:label for="isActive">Active</flux:label>
+            </div>
         </div>
 
         <div class="mt-6 flex justify-end gap-2">
             <flux:button wire:click="closeModal" variant="ghost">Cancel</flux:button>
-            <flux:button wire:click="save" variant="primary">Save Machine</flux:button>
+            <flux:button wire:click="save" variant="primary">Save</flux:button>
         </div>
     </flux:modal>
 </div>

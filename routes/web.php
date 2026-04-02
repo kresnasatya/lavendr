@@ -26,6 +26,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->prefix('superadmin')
     Route::livewire('roles', 'pages::roles')->name('roles');
     Route::livewire('role-limits', 'pages::role-limits')->name('role-limits');
     Route::livewire('recharge-settings', 'pages::recharge-settings')->name('recharge-settings');
+    Route::livewire('audit-logs', 'pages::audit-logs')->name('audit-logs');
 });
 
 require __DIR__.'/settings.php';

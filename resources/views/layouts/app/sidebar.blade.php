@@ -54,6 +54,9 @@
                         <flux:sidebar.item icon="clock" :href="route('superadmin.recharge-settings')" :current="request()->routeIs('superadmin.recharge-settings')" wire:navigate>
                             {{ __('Recharge Settings') }}
                         </flux:sidebar.item>
+                        <flux:sidebar.item icon="document-text" :href="route('superadmin.audit-logs')" :current="request()->routeIs('superadmin.audit-logs')" wire:navigate>
+                            {{ __('Audit Logs') }}
+                        </flux:sidebar.item>
                     </flux:sidebar.group>
                 @endif
             </flux:sidebar.nav>

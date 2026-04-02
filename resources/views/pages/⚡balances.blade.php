@@ -1,106 +1,81 @@
 <?php
 
-use Livewire\Component;
-use Livewire\Attributes\{Validate, Computed};
 use App\Models\EmployeeBalance;
 use App\Models\User;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
 
 new class extends Component
 {
-    public $showRechargeModal = false;
-    public $selectedEmployee = '';
-    public $rechargeAmount = 0;
-    public $searchTerm = '';
+    public bool $showRechargeModal = false;
+    public ?int $selectedEmployee = null;
+    public int $rechargeAmount = 0;
+    public string $searchTerm = '';
 
     #[Computed]
-    public function employees()
+    public function employees(): \Illuminate\Database\Eloquent\Collection
     {
         return User::role('employee')
-            ->where('name', 'like', '%' . $this->searchTerm . '%')
-            ->orWhere('email', 'like', '%' . $this->searchTerm . '%')
             ->with('balance')
+            ->where(function ($q) {
+                $q->where('name', 'like', '%'.$this->searchTerm.'%')
+                    ->orWhere('email', 'like', '%'.$this->searchTerm.'%');
+            })
+            ->orderBy('name')
             ->get();
     }
 
-    public function openRechargeModal($employeeId = null)
+    public function openRechargeModal(int $employeeId): void
     {
-        if ($employeeId) {
-            $this->selectedEmployee = $employeeId;
-            $this->rechargeAmount = 0;
-        }
+        $this->selectedEmployee = $employeeId;
+        $this->rechargeAmount = 0;
         $this->showRechargeModal = true;
     }
 
-    public function closeRechargeModal()
+    public function closeRechargeModal(): void
     {
         $this->showRechargeModal = false;
-        $this->selectedEmployee = '';
+        $this->selectedEmployee = null;
         $this->rechargeAmount = 0;
     }
 
-    public function rechargeBalance()
+    public function rechargeBalance(): void
     {
         $this->validate([
             'selectedEmployee' => 'required|exists:users,id',
-            'rechargeAmount' => 'required|integer|min:1',
+            'rechargeAmount'   => 'required|integer|min:1',
         ]);
 
-        $balance = EmployeeBalance::where('user_id', $this->selectedEmployee)->first();
-        if ($balance) {
-            $balance->update([
-                'current_balance' => $balance->current_balance + $this->rechargeAmount,
-            ]);
-        }
+        EmployeeBalance::where('user_id', $this->selectedEmployee)
+            ->increment('current_balance', $this->rechargeAmount);
 
+        unset($this->employees);
         $this->closeRechargeModal();
     }
 
-    public function resetDailyBalance($employeeId)
+    public function resetBalance(int $employeeId): void
     {
-        $employee = User::find($employeeId);
         $balance = EmployeeBalance::where('user_id', $employeeId)->first();
 
         if ($balance) {
-            $balance->update([
-                'current_balance' => $employee->daily_quota,
-            ]);
+            $balance->update(['current_balance' => $balance->daily_quota]);
         }
-    }
 
-    public function resetAllBalances()
-    {
-        $employees = User::role('employee')->get();
-        foreach ($employees as $employee) {
-            $balance = EmployeeBalance::where('user_id', $employee->id)->first();
-            if ($balance) {
-                $balance->update([
-                    'current_balance' => $employee->daily_quota,
-                ]);
-            }
-        }
+        unset($this->employees);
     }
-};
-?>
+}; ?>
 
 <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between border-b border-zinc-200 pb-6 dark:border-zinc-700">
-        <div>
-            <flux:heading size="xl">Manage Employee Balances</flux:heading>
-            <p class="text-zinc-600 dark:text-zinc-400">Recharge balances and manage daily quotas</p>
-        </div>
-        <flux:button icon="arrow-path" wire:click="resetAllBalances">
-            Reset All Daily Balances
-        </flux:button>
+    <div class="border-b border-zinc-200 pb-6 dark:border-zinc-700">
+        <flux:heading size="xl">Employee Balances</flux:heading>
+        <flux:text>View and top-up employee point balances</flux:text>
     </div>
 
-    <!-- Search -->
     <flux:field>
-        <flux:label>Search Employees</flux:label>
-        <flux:input wire:model.live="searchTerm" type="text" placeholder="Search by name or email..." />
+        <flux:label>Search</flux:label>
+        <flux:input wire:model.live="searchTerm" type="text" placeholder="Name or email…" />
     </flux:field>
 
-    <!-- Balances Table -->
     <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
         <table class="w-full">
             <thead class="bg-zinc-50 dark:bg-zinc-800">
@@ -114,35 +89,39 @@ new class extends Component
                 </tr>
             </thead>
             <tbody>
-                @forelse($this->employees as $employee)
-                    <tr class="border-b border-zinc-200 dark:border-zinc-700">
+                @forelse ($this->employees as $employee)
+                    <tr wire:key="bal-{{ $employee->id }}" class="border-b border-zinc-200 dark:border-zinc-700">
                         <td class="px-6 py-4 text-sm">
-                            <div>
-                                <p class="font-medium">{{ $employee->name }}</p>
-                                <p class="text-xs text-zinc-500">{{ $employee->email }}</p>
-                            </div>
+                            <p class="font-medium text-zinc-900 dark:text-white">{{ $employee->name }}</p>
+                            <p class="text-xs text-zinc-500">{{ $employee->email }}</p>
                         </td>
-                        <td class="px-6 py-4 text-sm font-mono">{{ $employee->card_number }}</td>
-                        <td class="px-6 py-4 text-right text-sm">${{ number_format($employee->daily_quota / 100, 2) }}</td>
+                        <td class="px-6 py-4 font-mono text-sm text-zinc-600 dark:text-zinc-400">
+                            {{ $employee->card_number ?? '—' }}
+                        </td>
                         <td class="px-6 py-4 text-right text-sm">
-                            <span class="font-semibold">
-                                ${{ number_format(($employee->balance->current_balance ?? 0) / 100, 2) }}
-                            </span>
+                            {{ $employee->balance?->daily_quota ?? 0 }} pts
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm font-semibold text-zinc-900 dark:text-white">
+                            {{ $employee->balance?->current_balance ?? 0 }} pts
                         </td>
                         <td class="px-6 py-4 text-center text-sm">
-                            @if(($employee->balance->current_balance ?? 0) >= $employee->daily_quota)
+                            @php
+                                $quota   = $employee->balance?->daily_quota ?? 0;
+                                $current = $employee->balance?->current_balance ?? 0;
+                            @endphp
+                            @if ($current >= $quota && $quota > 0)
                                 <flux:badge variant="success">Full</flux:badge>
-                            @elseif(($employee->balance->current_balance ?? 0) > 0)
+                            @elseif ($current > 0)
                                 <flux:badge variant="warning">Low</flux:badge>
                             @else
                                 <flux:badge variant="danger">Empty</flux:badge>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-right text-sm space-x-2">
+                        <td class="space-x-1 px-6 py-4 text-right text-sm">
                             <flux:button wire:click="openRechargeModal({{ $employee->id }})" size="sm" variant="subtle">
-                                Recharge
+                                Top Up
                             </flux:button>
-                            <flux:button wire:click="resetDailyBalance({{ $employee->id }})" size="sm" variant="ghost">
+                            <flux:button wire:click="resetBalance({{ $employee->id }})" size="sm" variant="ghost">
                                 Reset
                             </flux:button>
                         </td>
@@ -156,24 +135,20 @@ new class extends Component
         </table>
     </div>
 
-    <!-- Recharge Modal -->
-    <flux:modal wire:model="showRechargeModal">
-        <flux:heading>Recharge Employee Balance</flux:heading>
+    <flux:modal wire:model="showRechargeModal" class="max-w-sm">
+        <flux:heading>Top Up Balance</flux:heading>
 
         <div class="mt-6 space-y-4">
             <flux:field>
-                <flux:label>Recharge Amount (in cents)</flux:label>
-                <flux:input type="number" wire:model="rechargeAmount" placeholder="e.g., 1000" />
+                <flux:label>Amount (pts)</flux:label>
+                <flux:input type="number" wire:model="rechargeAmount" min="1" placeholder="e.g., 100" />
                 <flux:error name="rechargeAmount" />
-                <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                    Amount: ${{ $rechargeAmount ? number_format($rechargeAmount / 100, 2) : '0.00' }}
-                </p>
             </flux:field>
         </div>
 
         <div class="mt-6 flex justify-end gap-2">
             <flux:button wire:click="closeRechargeModal" variant="ghost">Cancel</flux:button>
-            <flux:button wire:click="rechargeBalance" variant="primary">Recharge</flux:button>
+            <flux:button wire:click="rechargeBalance" variant="primary">Top Up</flux:button>
         </div>
     </flux:modal>
 </div>

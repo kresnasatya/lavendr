@@ -22,9 +22,6 @@
                         <flux:sidebar.item icon="squares-2x2" :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate>
                             {{ __('Dashboard') }}
                         </flux:sidebar.item>
-                        <flux:sidebar.item icon="key" :href="route('admin.roles')" :current="request()->routeIs('admin.roles')" wire:navigate>
-                            {{ __('Roles') }}
-                        </flux:sidebar.item>
                         <flux:sidebar.item icon="users" :href="route('admin.employees')" :current="request()->routeIs('admin.employees')" wire:navigate>
                             {{ __('Employees') }}
                         </flux:sidebar.item>
@@ -39,6 +36,23 @@
                         </flux:sidebar.item>
                         <flux:sidebar.item icon="chart-bar" :href="route('admin.reports')" :current="request()->routeIs('admin.reports')" wire:navigate>
                             {{ __('Reports') }}
+                        </flux:sidebar.item>
+                    </flux:sidebar.group>
+                @endif
+
+                @if(auth()->user()->hasRole('superadmin'))
+                    <flux:sidebar.group :heading="__('System')" class="grid">
+                        <flux:sidebar.item icon="squares-2x2" :href="route('superadmin.dashboard')" :current="request()->routeIs('superadmin.dashboard')" wire:navigate>
+                            {{ __('Dashboard') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="key" :href="route('superadmin.roles')" :current="request()->routeIs('superadmin.roles')" wire:navigate>
+                            {{ __('Roles') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="adjustments-horizontal" :href="route('superadmin.role-limits')" :current="request()->routeIs('superadmin.role-limits')" wire:navigate>
+                            {{ __('Role Limits') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="clock" :href="route('superadmin.recharge-settings')" :current="request()->routeIs('superadmin.recharge-settings')" wire:navigate>
+                            {{ __('Recharge Settings') }}
                         </flux:sidebar.item>
                     </flux:sidebar.group>
                 @endif

@@ -295,7 +295,7 @@ new class extends Component
                 @foreach ($this->recentTransactions as $tx)
                     <div wire:key="tx-{{ $tx->id }}" class="flex items-center justify-between px-5 py-3">
                         <div class="flex items-center gap-3">
-                            @if ($tx->status === TransactionStatus::Success)
+                            @if ($tx->status === \App\Enums\TransactionStatus::Success)
                                 <flux:icon icon="check-circle" class="h-5 w-5 shrink-0 text-green-500" />
                             @else
                                 <flux:icon icon="x-circle" class="h-5 w-5 shrink-0 text-red-400" />
@@ -308,7 +308,7 @@ new class extends Component
                             </div>
                         </div>
                         <div class="text-right">
-                            @if ($tx->status === TransactionStatus::Success)
+                            @if ($tx->status === \App\Enums\TransactionStatus::Success)
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-white">-{{ $tx->points_deducted }} pts</p>
                             @else
                                 <p class="text-xs text-zinc-400">{{ $tx->notes }}</p>

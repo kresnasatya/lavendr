@@ -82,12 +82,15 @@
                                     </a>
                                 @endif
                                 <hr class="border-retro-dark my-1">
-                                <a
-                                    href="{{ route('logout') }}"
-                                    class="block px-3 py-2 text-sm font-terminal hover:bg-retro-light rounded text-red-600"
-                                >
-                                    LOGOUT
-                                </a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="w-full text-left block px-3 py-2 text-sm font-terminal hover:bg-retro-light rounded text-red-600"
+                                    >
+                                        LOGOUT
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

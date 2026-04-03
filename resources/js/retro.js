@@ -4,6 +4,8 @@
 
 function retroVending() {
     return {
+        $wire: null, // Will be set by Alpine
+
         gameState: 'select_machine',
         balance: 0,
         todayUsage: {
@@ -14,38 +16,31 @@ function retroVending() {
 
         // Initialize retro vending machine
         initRetro() {
-            // Listen for Livewire updates
-            Livewire.hook('message.processed', (message, component) => {
-                this.updateFromLivewire(component);
+            // Watch for Livewire property changes using $watch
+            this.$wire.$watch('balance', (newVal, oldVal) => {
+                if (newVal !== oldVal) {
+                    this.balance = newVal;
+                    this.animateBalanceUpdate();
+                }
+            });
+
+            this.$wire.$watch('todayUsage', (newVal) => {
+                if (newVal) {
+                    this.todayUsage = newVal;
+                }
+            });
+
+            this.$wire.$watch('gameState', (newVal) => {
+                if (newVal) {
+                    this.gameState = newVal;
+                }
             });
 
             // Preload sprites
             this.preloadSprites();
 
-            // Initialize balance
-            this.balance = component.$get('balance') || 0;
-        },
-
-        // Update local state from Livewire component
-        updateFromLivewire(component) {
-            // Update balance
-            const newBalance = component.$get('balance');
-            if (newBalance !== undefined && newBalance !== this.balance) {
-                this.balance = newBalance;
-                this.animateBalanceUpdate();
-            }
-
-            // Update today's usage
-            const newUsage = component.$get('todayUsage');
-            if (newUsage) {
-                this.todayUsage = newUsage;
-            }
-
-            // Update game state
-            const newState = component.$get('gameState');
-            if (newState) {
-                this.gameState = newState;
-            }
+            // Initialize balance from server
+            this.balance = this.$wire.balance || 0;
         },
 
         // Animate balance update with credit counter effect

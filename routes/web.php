@@ -5,7 +5,8 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::livewire('dashboard', 'pages::employee-dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::retro-vending')->name('dashboard');
+    Route::livewire('dashboard/modern', 'pages::employee-dashboard')->name('dashboard.modern');
 });
 
 // Manager Routes

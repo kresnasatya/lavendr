@@ -56,7 +56,7 @@ new class extends Component
     public function machineSlots(): \Illuminate\Database\Eloquent\Collection
     {
         if (! $this->selectedMachineId) {
-            return collect();
+            return \App\Models\MachineSlot::whereRaw('1 = 0')->get();
         }
 
         return \App\Models\MachineSlot::where('machine_id', $this->selectedMachineId)
